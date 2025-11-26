@@ -93,6 +93,12 @@
             ),
             RotateCw: ({ size = 24 }) => (
                 <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>
+            ),
+            Save: ({ size = 24 }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            ),
+            Upload: ({ size = 24 }) => (
+                <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
             )
         };
 
@@ -312,6 +318,7 @@
             const [viTri, setViTri] = useState({ x: 0, y: 0 });
             const [dangKeo, setDangKeo] = useState(false);
             const vungVeRef = useRef(null);
+            const fileInputRef = useRef(null); // Ref cho input file
 
             const moModalThem = (idCha) => setModal({ mo: true, cheDo: 'them', idDuocChon: idCha, duLieuCu: {} });
             const moModalSua = (nut) => setModal({ mo: true, cheDo: 'sua', idDuocChon: nut.id, duLieuCu: nut });
@@ -336,6 +343,44 @@
                 }
             };
 
+            // Luu file JSON
+            const xuLyLuuFile = () => {
+                const dataStr = JSON.stringify(cayGiaPha, null, 2);
+                const blob = new Blob([dataStr], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `gia_pha_${new Date().toISOString().slice(0, 10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            // Tai len file JSON
+            const xuLyTaiLenFile = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const json = JSON.parse(e.target.result);
+                        if (json && json.id && json.hoTen) {
+                            setCayGiaPha(json);
+                            setTyLeZoom(1);
+                            setViTri({ x: 0, y: 0 });
+                        } else {
+                            alert("File không hợp lệ!");
+                        }
+                    } catch (error) {
+                        alert("Lỗi đọc file!");
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = ''; // Reset input
+            };
+
             const xuLyZoom = (delta) => setTyLeZoom(prev => Math.max(0.2, Math.min(2.0, prev + delta)));
             const batDauKeo = () => setDangKeo(true);
             const ketThucKeo = () => setDangKeo(false);
@@ -355,8 +400,23 @@
                             <button onClick={() => xuLyZoom(0.1)} className="p-2 hover:bg-white rounded-md"><Icons.ZoomIn size={20} /></button>
                         </div>
                         <div className="flex space-x-3">
-                            <button onClick={() => { setCayGiaPha(duLieuKhoiTao); setViTri({x:0, y:0}); setTyLeZoom(1); }} className="flex items-center space-x-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash2 size={18} /><span>Mới</span></button>
-                            <button onClick={xuLyIn} className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm"><Icons.Download size={18} /><span>In/Lưu</span></button>
+                            {/* Input file an */}
+                            <input 
+                                type="file" 
+                                ref={fileInputRef}
+                                onChange={xuLyTaiLenFile} 
+                                accept=".json" 
+                                className="hidden" 
+                            />
+                            
+                            <button onClick={() => fileInputRef.current.click()} className="flex items-center space-x-2 px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg" title="Tải file lên">
+                                <Icons.Upload size={18} /><span>Tải lên</span>
+                            </button>
+                            <button onClick={xuLyLuuFile} className="flex items-center space-x-2 px-3 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg" title="Lưu file về máy">
+                                <Icons.Save size={18} /><span>Lưu</span>
+                            </button>
+                            <button onClick={() => { setCayGiaPha(duLieuKhoiTao); setViTri({x:0, y:0}); setTyLeZoom(1); }} className="flex items-center space-x-2 px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"><Icons.Trash2 size={18} /><span>Mới</span></button>
+                            <button onClick={xuLyIn} className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-sm"><Icons.Download size={18} /><span>In/Lưu PDF</span></button>
                         </div>
                     </div>
 
